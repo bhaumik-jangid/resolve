@@ -1,13 +1,14 @@
 import express from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import allowRoles from "../middlewares/role.middleware.js";
-import requireApprovedAgent from "../middlewares/requireApprovedAgent.js";
 
 import {
   createTicket,
   assignTicket,
   updateTicketStatus,
-  getTickets
+  getTickets, 
+  acceptTicket
+
 } from "../controllers/ticket.controller.js";
 
 const router = express.Router();
@@ -21,18 +22,18 @@ router.post(
 );
 
 /* Admin assigns ticket */
-router.post(
-  "/assign",
+router.patch(
+  "/:ticketId/assign",
   authMiddleware,
-  allowRoles("ADMIN"),
   assignTicket
 );
+
 
 /* Agent/Admin update status */
 router.put(
   "/status",
   authMiddleware,
-  allowRoles("AGENT", "ADMIN"),
+  allowRoles("AGENT", "ADMIN", "CUSTOMER"),
   updateTicketStatus
 );
 
@@ -42,5 +43,13 @@ router.get(
   authMiddleware,
   getTickets
 );
+
+/* agent accepts ticket */
+router.patch(
+  "/:ticketId/accept",
+  authMiddleware,
+  acceptTicket
+);
+
 
 export default router;

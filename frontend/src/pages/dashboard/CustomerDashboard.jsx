@@ -6,20 +6,20 @@ import { Badge } from '../../components/ui/Badge';
 import { Loader } from '../../components/common/Loader';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { CreateTicketModal } from './CreateTicketModal';
 
 export const CustomerDashboard = () => {
     const { user } = useAuth();
-    const [data, setData] = useState([]);
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isFallback, setIsFallback] = useState(false);
+    const [showCreateTicket, setShowCreateTicket] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
                 const res = await api.dashboard.customer(); // 13) GET /api/dashboard/customer
-                setData(res.data.recentTickets || []);
                 setStats(res.data.stats || []);
                 if (res.isFallback) setIsFallback(true);
             } catch (err) {
@@ -45,12 +45,15 @@ export const CustomerDashboard = () => {
             )}
 
             {/* Hero / Welcome */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                <div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">Welcome back, {user?.name.split(' ')[0]}</h1>
-                    <p className="text-gray-400 mt-2 text-lg">Everything looks good. You have {data.length} active tickets.</p>
-                </div>
-                <PrimaryButton className="gap-2 shadow-xl shadow-brand-purple/20">
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold text-white">
+                    Welcome back, {user?.name}
+                </h1>
+
+                <PrimaryButton
+                    onClick={() => setShowCreateTicket(true)}
+                    className="gap-2"
+                >
                     <Plus size={20} />
                     Create New Ticket
                 </PrimaryButton>
@@ -71,40 +74,12 @@ export const CustomerDashboard = () => {
                     </motion.div>
                 ))}
             </div>
-
-            {/* Ticket List (Simplified for Customer) */}
-            <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-semibold text-white">Your Recent Activity</h3>
-                    <button className="text-brand-purple hover:text-brand-orchid transition-colors flex items-center gap-1 text-sm font-medium">
-                        View History <ArrowRight size={16} />
-                    </button>
-                </div>
-
-                <div className="bg-brand-card/30 border border-gray-800 rounded-2xl overflow-hidden divide-y divide-gray-800">
-                    {data.map((ticket) => (
-                        <div key={ticket.id} className="p-6 flex items-center justify-between group hover:bg-white/5 transition-colors cursor-pointer">
-                            <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${ticket.status === 'open' ? 'bg-blue-500/10 text-blue-400' : 'bg-gray-800 text-gray-400'}`}>
-                                    <Ticket size={24} />
-                                </div>
-                                <div>
-                                    <h4 className="text-lg font-medium text-white group-hover:text-brand-light transition-colors">{ticket.subject}</h4>
-                                    <p className="text-sm text-gray-500">Updated {ticket.updated}</p>
-                                </div>
-                            </div>
-                            <Badge variant={ticket.status === 'open' ? 'blue' : 'default'} className="px-3 py-1">
-                                {ticket.status}
-                            </Badge>
-                        </div>
-                    ))}
-                    {data.length === 0 && (
-                        <div className="p-12 text-center text-gray-500">
-                            No active tickets.
-                        </div>
-                    )}
-                </div>
-            </div>
+            {showCreateTicket && (
+                <CreateTicketModal
+                    onClose={() => setShowCreateTicket(false)}
+                    onCreated={() => window.location.reload()}
+                />
+            )}
         </div>
     );
 };

@@ -16,6 +16,7 @@ export const SignupForm = () => {
     });
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const [generalError, setGeneralError] = useState("");
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -165,6 +166,8 @@ export const SignupForm = () => {
                 icon={Lock}
                 required
             />
+
+            {generalError && <FormError message={generalError} />}
 
             <PrimaryButton loading={loading} type="submit">
                 Create Account

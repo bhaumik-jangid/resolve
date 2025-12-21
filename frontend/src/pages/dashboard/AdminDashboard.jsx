@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Activity, Users, Shield, Globe, MoreVertical } from 'lucide-react';
+// import { motion } from 'framer-motion';
+import { Activity, Users, Shield, Globe, MoreVertical, AlertTriangle } from 'lucide-react';
 import { Loader } from '../../components/common/Loader';
 import { api } from '../../services/api';
 
@@ -11,20 +11,35 @@ export const AdminDashboard = () => {
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isFallback, setIsFallback] = useState(false);
-
     const [agents, setAgents] = useState([]);
+    const [pendingAgents, setPendingAgents] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const [dashRes, agentsRes] = await Promise.all([
-                    api.dashboard.admin(),
-                    api.admin.agents.list()
-                ]);
-                setStats(dashRes.data.stats || []);
-                setAgents(agentsRes.data || []);
-                if (dashRes.isFallback || agentsRes.isFallback) setIsFallback(true);
+                const res = await api.dashboard.admin();
+
+                const t = res.tickets || {};
+                const a = res.agents || {};
+                console.log(res);
+
+                // Construct stats for the grid
+                const newStats = [
+                    { label: "Total Tickets", value: t.total || 0, change: "All Time" },
+                    { label: "Open Tickets", value: t.open || 0, change: "Requires Attention" },
+                    { label: "Active Agents", value: (a.total || 0) - (a.pending || 0), change: "Online" },
+                    { label: "Pending Approvals", value: a.pending || 0, change: "Action Needed" }
+                ];
+
+                setStats(newStats);
+
+                // Process Lists
+                const list = res.agentsList || [];
+                setAgents(list.filter(agent => agent.approved));
+                setPendingAgents(list.filter(agent => !agent.approved));
+
+                if (res.isFallback) setIsFallback(true);
             } catch (err) {
                 console.error("Admin Dashboard Fail", err);
             } finally {
@@ -33,6 +48,29 @@ export const AdminDashboard = () => {
         };
         fetchData();
     }, []);
+
+    const handleApprove = async (id) => {
+        try {
+            await api.admin.agents.approve(id);
+            // Move from pending to active
+            const agent = pendingAgents.find(a => a.id === id);
+            setPendingAgents(prev => prev.filter(p => p.id !== id));
+            if (agent) {
+                setAgents(prev => [...prev, { ...agent, status: 'active', approved: true }]);
+            }
+        } catch (err) {
+            console.error("Approve failed", err);
+        }
+    };
+
+    const handleReject = async (id) => {
+        try {
+            await api.admin.agents.reject(id);
+            setPendingAgents(prev => prev.filter(p => p.id !== id));
+        } catch (err) {
+            console.error("Reject failed", err);
+        }
+    };
 
     if (loading) return <div className="h-full flex items-center justify-center"><Loader /></div>;
 
@@ -76,50 +114,93 @@ export const AdminDashboard = () => {
                 ))}
             </div>
 
-            {/* Administration Panels */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* User Management */}
-                <div className="lg:col-span-2 bg-brand-card border border-gray-800 rounded-lg overflow-hidden">
-                    <div className="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
-                        <h3 className="font-semibold text-white flex items-center gap-2">
-                            <Users size={18} /> User Management
-                        </h3>
-                        <button className="text-gray-400 hover:text-white"><MoreVertical size={16} /></button>
-                    </div>
-                    <div className="p-6">
-                        <div className="space-y-4">
-                            {agents.map(agent => (
-                                <div key={agent.id} className="flex items-center justify-between p-3 bg-gray-800/30 rounded border border-gray-800/50">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded bg-gray-700 flex items-center justify-center text-xs text-white/50">
-                                            {agent.id}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-white">{agent.name}</p>
-                                            <p className="text-xs text-gray-500">{agent.email}</p>
-                                        </div>
-                                    </div>
-                                    <span className={`text-xs px-2 py-1 rounded ${agent.status === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
-                                        {agent.status}
-                                    </span>
-                                </div>
-                            ))}
+            {/* Pending Approvals Section */}
+            {pendingAgents.length > 0 && (
+                <div className="bg-brand-card border border-gray-800 rounded-lg overflow-hidden">
+                    <div className="p-4 border-b border-gray-800 bg-amber-500/5 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="text-amber-500" size={18} />
+                            <h3 className="font-semibold text-white">Pending Approvals</h3>
+                            <div className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 text-xs font-medium">{pendingAgents.length}</div>
                         </div>
                     </div>
+                    <div className="divide-y divide-gray-800">
+                        {pendingAgents.map((agent) => (
+                            <div key={agent.id} className="p-4 flex items-center justify-between">
+                                <div>
+                                    <p className="text-white font-medium">{agent.name}</p>
+                                    <p className="text-sm text-gray-400">{agent.email}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleApprove(agent.id)}
+                                        className="px-3 py-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 rounded-md text-sm font-medium transition-colors"
+                                    >
+                                        Approve
+                                    </button>
+                                    <button
+                                        onClick={() => handleReject(agent.id)}
+                                        className="px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-md text-sm font-medium transition-colors"
+                                    >
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
+            )}
 
-                {/* Security Log */}
-                <div className="bg-brand-card border border-gray-800 rounded-lg overflow-hidden">
-                    <div className="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
-                        <h3 className="font-semibold text-white flex items-center gap-2">
-                            <Shield size={18} /> Security Log
-                        </h3>
-                    </div>
-                    <div className="p-6 text-sm text-gray-400 space-y-4 font-mono">
-                        <p><span className="text-blue-400">10:42:01</span> [AUTH] Valid login from 192.168.1.1</p>
-                        <p><span className="text-orange-400">10:41:55</span> [WARN] Failed attempt details...</p>
-                        <p><span className="text-blue-400">10:40:12</span> [SYS] Backup completed.</p>
-                    </div>
+            {/* All Agents List */}
+            <div className="bg-brand-card border border-gray-800 rounded-lg overflow-hidden">
+                <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                    <h3 className="font-semibold text-white flex items-center gap-2">
+                        <Users size={18} className="text-brand-purple" />
+                        All Agents
+                    </h3>
+                    <div className="px-2 py-0.5 rounded-full bg-gray-800 text-gray-400 text-xs font-medium">{agents.length}</div>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-900/50 text-xs text-gray-500 uppercase">
+                            <tr>
+                                <th className="px-6 py-3">Name</th>
+                                <th className="px-6 py-3">Email</th>
+                                <th className="px-6 py-3">Role</th>
+                                <th className="px-6 py-3">Active Tickets</th>
+                                <th className="px-6 py-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-800">
+                            {agents.map((agent) => (
+                                <tr key={agent.id} className="hover:bg-gray-800/30 transition-colors">
+                                    <td className="px-6 py-4 text-white font-medium">{agent.name}</td>
+                                    <td className="px-6 py-4 text-gray-400">{agent.email}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="inline-flex px-2 py-0.5 rounded border border-brand-purple/50 text-brand-purple text-xs font-medium">
+                                            {agent.role || 'AGENT'}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-400 text-center font-mono">
+                                        {agent.activeTicketCount || 0}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                                            <span className="text-sm text-gray-300">Active</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {agents.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                                        No agents found.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

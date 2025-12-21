@@ -8,7 +8,8 @@ import Message from "../src/models/Message.js";
 
 dotenv.config();
 
-const MONGO_URI = process.env.MONGO_URI;
+const MONGO_URI = "mongodb+srv://azrael:resolve@resolve.bbtn3sy.mongodb.net/resolve";
+console.log("Using MongoDB URI:", MONGO_URI);
 
 const runSeed = async () => {
   try {
@@ -66,7 +67,7 @@ const runSeed = async () => {
       authProvider: "LOCAL"
     });
 
-    console.log("Users created");
+    // console.log("Users created");
 
     // =====================
     // TICKETS + MESSAGES
@@ -77,11 +78,26 @@ const runSeed = async () => {
 
     for (const customer of customers) {
       for (let i = 1; i <= 5; i++) {
+
+        const subject = `Issue ${i}: Unable to access account features`;
+        const description = `
+Customer is facing issue #${i}.
+They report unexpected behavior while using the application.
+Steps tried:
+- Refreshed page
+- Logged out and logged in
+- Tried different browser
+
+Expected resolution from support.
+    `.trim();
+
         const ticket = await Ticket.create({
           customerId: customer._id,
           agentId: agent._id,
           status: "ASSIGNED",
           priority: priorities[i % priorities.length],
+          subject,
+          description,
           assignedAt: new Date()
         });
 
@@ -93,29 +109,30 @@ const runSeed = async () => {
             ticketId: ticket._id,
             senderId: customer._id,
             senderRole: "CUSTOMER",
-            content: `Hi, I need help with issue #${i}`
+            content: `Hi, I need help regarding "${subject}".`
           },
           {
             ticketId: ticket._id,
             senderId: agent._id,
             senderRole: "AGENT",
-            content: "Thanks for reaching out. I'm looking into this."
+            content: "Thanks for reaching out. I’ve reviewed your issue and I’m investigating it."
           },
           {
             ticketId: ticket._id,
             senderId: admin._id,
             senderRole: "ADMIN",
-            content: "Admin here — monitoring this conversation."
+            content: "Admin here — monitoring this conversation for quality assurance."
           },
           {
             ticketId: ticket._id,
             senderId: customer._id,
             senderRole: "CUSTOMER",
-            content: "Thanks for the quick response."
+            content: "Appreciate the quick response."
           }
         ]);
       }
     }
+
 
     await agent.save();
 

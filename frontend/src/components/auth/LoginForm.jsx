@@ -58,12 +58,6 @@ export const LoginForm = () => {
 
             const { token, role, agentApproved } = signinRes.data;
 
-            // Edge case: agent not approved
-            if (role === "AGENT" && agentApproved === false) {
-                setGeneralError("Your account is pending admin approval.");
-                return;
-            }
-
             localStorage.setItem("token", token);
 
             // 2️⃣ Fetch profile

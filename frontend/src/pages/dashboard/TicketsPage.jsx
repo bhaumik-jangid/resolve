@@ -7,32 +7,79 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { Loader } from '../../components/common/Loader';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useTickets } from '../../context/TicketsContext';
 
 export const TicketsPage = () => {
     const { user } = useAuth();
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isFallback, setIsFallback] = useState(false);
+    const navigate = useNavigate();
+    const { upsertTickets } = useTickets();
 
     useEffect(() => {
         const fetchTickets = async () => {
+            if (!user) return;
+
             setLoading(true);
             try {
-                const res = await api.tickets.list(user?.role || 'customer'); // 4) GET /api/tickets
-                setTickets(res.data);
-                // Handle fallback notice if needed
+                const res = await api.tickets.list();
+                const normalized = res.map(normalizeTicket);
+                setTickets(normalized);
+                upsertTickets(normalized);
+                setIsFallback(false);
             } catch (err) {
-                console.error("Tickets Load Fail", err);
+                console.error("Failed to load tickets", err);
+                setIsFallback(true);
             } finally {
                 setLoading(false);
             }
         };
-        if (user) fetchTickets();
+
+        fetchTickets();
     }, [user]);
 
     const filteredTickets = tickets.filter(t => {
+        // Search Filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            const matchesId = t.id.toLowerCase().includes(query);
+            const matchesSubject = t.subject.toLowerCase().includes(query);
+            if (!matchesId && !matchesSubject) return false;
+        }
+
+        // CUSTOMER: hide assigned completely
+        // if (user.role === 'CUSTOMER') {
+        //     if (t.status === 'assigned') return false;
+        // }
+
         if (filter === 'all') return true;
-        return t.status === filter;
+        if (filter === 'open') return t.status === 'open';
+        if (filter === 'in-progress') return t.status === 'assigned';
+        if (filter === 'resolved') return t.status === 'resolved';
+        if (filter === 'closed') return t.status === 'closed';
+
+        return true;
+    });
+
+    const filters =
+        user?.role === 'CUSTOMER' || user?.role === 'ADMIN'
+            ? ['all', 'open', 'in-progress', 'resolved', 'closed']
+            : ['all', 'in-progress', 'resolved', 'closed'];
+
+
+    const normalizeTicket = (t) => ({
+        id: t._id,
+        subject: t.subject,
+        requester: t.customerId?.name || "Unknown",
+        agent: t.agentId?.name || null,
+        status: t.status.toLowerCase(),
+        priority: t.priority.toLowerCase(),
+        updated: new Date(t.updatedAt).toLocaleDateString(),
+        raw: t
     });
 
     if (loading) return <div className="h-full flex items-center justify-center"><Loader /></div>;
@@ -43,17 +90,21 @@ export const TicketsPage = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
                 <div>
                     <h1 className="text-2xl font-bold text-white">
-                        {user?.role === 'customer' ? 'My Tickets' : user?.role === 'admin' ? 'All System Tickets' : 'Assigned Tickets'}
+                        {user?.role === 'CUSTOMER' ? 'My Tickets' : user?.role === 'ADMIN' ? 'All System Tickets' : 'Assigned Tickets'}
                     </h1>
                     <p className="text-gray-400">
-                        {user?.role === 'customer' ? 'Track your support requests' : 'Manage your ticket queue'}
+                        {user?.role === 'CUSTOMER' ? 'Track your support requests' : 'Manage your ticket queue'}
                     </p>
                 </div>
-                <PrimaryButton className="gap-2">
-                    <Plus size={18} />
-                    <span className="hidden sm:inline">New Ticket</span>
-                    <span className="sm:hidden">New</span>
-                </PrimaryButton>
+                {user?.role === 'CUSTOMER' && (
+                    <PrimaryButton
+                        className="gap-2"
+                        onClick={() => navigate('/dashboard/new-ticket')}
+                    >
+                        <Plus size={18} />
+                        New Ticket
+                    </PrimaryButton>
+                )}
             </div>
 
             {/* Controls */}
@@ -62,18 +113,24 @@ export const TicketsPage = () => {
                     <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                     <input
                         type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search by subject or ID..."
                         className="w-full bg-brand-dark border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:border-brand-purple focus:outline-none transition-colors"
                     />
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar">
-                    {['all', 'open', 'in-progress', 'closed'].map(f => (
+                    {filters.map(f => (
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors whitespace-nowrap border ${filter === f ? 'bg-brand-purple border-brand-purple text-white' : 'bg-gray-800 border-gray-800 text-gray-400 hover:border-gray-600 hover:text-white'}`}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors whitespace-nowrap border
+                            ${filter === f
+                                    ? 'bg-brand-purple border-brand-purple text-white'
+                                    : 'bg-gray-800 border-gray-800 text-gray-400 hover:border-gray-600 hover:text-white'
+                                }`}
                         >
-                            {f}
+                            {f === 'in-progress' ? 'In Progress' : f}
                         </button>
                     ))}
                 </div>
@@ -93,9 +150,9 @@ export const TicketsPage = () => {
                             >
                                 <TicketCard
                                     ticket={ticket}
-                                    onClick={() => { }}
+                                    onClick={() => navigate(`/dashboard/chat?ticketId=${ticket.id}`)}
                                     // Prop to control density of card based on role
-                                    dense={user?.role === 'agent' || user?.role === 'admin'}
+                                    dense={user?.role === 'AGENT' || user?.role === 'ADMIN'}
                                 />
                             </motion.div>
                         ))
@@ -103,8 +160,16 @@ export const TicketsPage = () => {
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                             <EmptyState
                                 icon={AlertCircle}
-                                title="No tickets found"
-                                description="Try adjusting your filters."
+                                title={
+                                    user.role === 'CUSTOMER'
+                                        ? "No tickets found"
+                                        : "No assigned tickets"
+                                }
+                                description={
+                                    user.role === 'CUSTOMER'
+                                        ? "Create a new ticket to get help."
+                                        : "Tickets will appear here once assigned."
+                                }
                             />
                         </motion.div>
                     )}

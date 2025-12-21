@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
+import { useLocation } from "react-router-dom";
 
 export const Sidebar = ({ collapsed, setCollapsed }) => {
     const { user, logout } = useAuth();
@@ -37,10 +38,12 @@ export const Sidebar = ({ collapsed, setCollapsed }) => {
             { label: 'All Tickets', icon: Ticket, path: '/dashboard/tickets' },
             { label: 'Agents', icon: Users, path: '/dashboard/agents' },
             { label: 'Chat', icon: MessageSquare, path: '/dashboard/chat' },
-            { label: 'System Overview', icon: LayoutDashboard, path: '/dashboard/system' }, // Added System Overview
+            // { label: 'System Overview', icon: LayoutDashboard, path: '/dashboard/system' }, // Added System Overview
             { label: 'Profile', icon: Settings, path: '/dashboard/profile' },
         ]
     };
+
+    const location = useLocation();
 
     const roleKey = user?.role?.toLowerCase();
     const currentMenu = menus[roleKey] ?? [];
@@ -85,40 +88,43 @@ export const Sidebar = ({ collapsed, setCollapsed }) => {
 
             {/* Nav Items */}
             <nav className="flex-1 py-6 px-3 space-y-1">
-                {currentMenu.map((item) => (
-                    <NavLink
-                        key={item.path}
-                        to={item.path}
-                        className={({ isActive }) => cn(
-                            "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative overflow-hidden",
-                            isActive
-                                ? "bg-brand-purple/10 text-brand-light"
-                                : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-                        )}
-                    >
-                        {({ isActive }) => (
-                            <>
-                                {isActive && (
-                                    <motion.div
-                                        layoutId="active-indicator"
-                                        className="absolute left-0 top-0 w-1 h-full bg-brand-orchid"
-                                    />
-                                )}
-                                <item.icon size={20} className={cn("flex-shrink-0 transition-colors", isActive && "text-brand-orchid")} />
-                                {!collapsed && (
-                                    <span className="whitespace-nowrap font-medium">{item.label}</span>
-                                )}
+                {currentMenu.map((item) => {
+                    const isActive = location.pathname.startsWith(item.path);
+                    return (
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            className={cn(
+                                "flex items-center gap-3 px-3 py-3 rounded-lg transition-all",
+                                isActive
+                                    ? "bg-brand-purple/10 text-brand-light"
+                                    : "text-gray-400 hover:bg-gray-800/50"
+                            )}
+                        >
+                            {({ isActive }) => (
+                                <>
+                                    {isActive && (
+                                        <motion.div
+                                            layoutId="active-indicator"
+                                            className="absolute left-0 top-0 w-1 h-full bg-brand-orchid"
+                                        />
+                                    )}
+                                    <item.icon size={20} className={cn("flex-shrink-0 transition-colors", isActive && "text-brand-orchid")} />
+                                    {!collapsed && (
+                                        <span className="whitespace-nowrap font-medium">{item.label}</span>
+                                    )}
 
-                                {/* Tooltip for collapsed state */}
-                                {collapsed && (
-                                    <div className="absolute left-full ml-4 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
-                                        {item.label}
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </NavLink>
-                ))}
+                                    {/* Tooltip for collapsed state */}
+                                    {collapsed && (
+                                        <div className="absolute left-full ml-4 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
+                                            {item.label}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </NavLink>
+                    );
+                })}
             </nav>
 
             {/* Footer / User Profile */}

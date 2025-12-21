@@ -5,6 +5,8 @@ import { HeaderBar } from './HeaderBar';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
 
+import { FluidBackground } from '../components/common/FluidBackground';
+
 export const AppLayout = () => {
     const { user, loading } = useAuth();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -16,7 +18,9 @@ export const AppLayout = () => {
     }
 
     return (
-        <div className="min-h-screen bg-brand-darker text-white flex">
+        <div className="min-h-screen bg-brand-darker text-white flex relative isolate">
+            <FluidBackground />
+
             {/* Sidebar */}
             <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
 

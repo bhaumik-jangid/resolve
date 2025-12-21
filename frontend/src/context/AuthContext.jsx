@@ -1,47 +1,69 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import axios from "axios";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Check for stored user
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        }
-        setLoading(false);
+        const initAuth = async () => {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const res = await axios.get(
+                    "http://localhost:5000/api/auth/me",
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+
+                setUser(res.data);
+                setError(null);
+            } catch (err) {
+                localStorage.removeItem("token");
+                setUser(null);
+                setError("Session expired. Please login again.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        initAuth();
     }, []);
 
     const login = (userData) => {
-        // Enforce valid roles: 'customer' | 'agent' | 'admin'
-        // Default mock user if just "clicking login"
-        const defaultUser = {
-            id: '1',
-            name: 'Demo User',
-            email: 'demo@example.com',
-            role: 'admin', // Default role
-            avatar: null
-        };
-
-        const userToSet = { ...defaultUser, ...userData };
-        console.log("Logging in as:", userToSet.role);
-
-        setUser(userToSet);
-        localStorage.setItem('user', JSON.stringify(userToSet));
+        setUser(userData);
+        setError(null);
     };
 
     const logout = () => {
+        localStorage.removeItem("token");
         setUser(null);
-        localStorage.removeItem('user');
+        setError(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider
+            value={{
+                user,
+                loading,
+                error,
+                login,
+                logout,
+                isAuthenticated: !!user,
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );
