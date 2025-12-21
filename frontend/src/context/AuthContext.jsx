@@ -18,15 +18,18 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = (userData) => {
-        // userData should include role: 'customer' | 'agent' | 'admin'
-        // Default mock behavior if not provided
-        const userToSet = userData || {
+        // Enforce valid roles: 'customer' | 'agent' | 'admin'
+        // Default mock user if just "clicking login"
+        const defaultUser = {
             id: '1',
-            name: 'John Doe',
-            email: 'john@example.com',
-            role: 'customer',
+            name: 'Demo User',
+            email: 'demo@example.com',
+            role: 'admin', // Default role
             avatar: null
         };
+
+        const userToSet = { ...defaultUser, ...userData };
+        console.log("Logging in as:", userToSet.role);
 
         setUser(userToSet);
         localStorage.setItem('user', JSON.stringify(userToSet));

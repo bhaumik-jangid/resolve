@@ -45,18 +45,21 @@ export const SignupForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setGeneralError("");
+
         if (!validate()) return;
 
         setLoading(true);
 
         try {
-            const res = await axios.post(
+            // 1️⃣ Signup
+            const signupRes = await axios.post(
                 "http://localhost:5000/api/auth/signup",
                 {
                     name: formData.name,
                     email: formData.email,
                     password: formData.password,
-                    role: formData.role.toUpperCase()
+                    role: formData.role.toUpperCase() // backend will reject invalid roles
                 },
                 {
                     headers: {
@@ -65,27 +68,45 @@ export const SignupForm = () => {
                 }
             );
 
-            const data = res.data;
+            const { token, role, agentApproved } = signupRes.data;
 
-            console.log("Signup success:", data);
+            // Edge case: agent pending approval
+            if (role === "AGENT" && agentApproved === false) {
+                setGeneralError("Your account is pending admin approval.");
+                return;
+            }
 
-            localStorage.setItem("token", data.token);
+            // 2️⃣ Store token
+            localStorage.setItem("token", token);
 
-            // if (data.role === "AGENT" && !data.agentApproved) {
-            //     alert("Your account is pending admin approval");
-            // }
+            // 3️⃣ Fetch user profile (/me)
+            const meRes = await axios.get(
+                "http://localhost:5000/api/auth/me",
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            // 4️⃣ Hydrate auth context
+            login(meRes.data);
+
+            // 5️⃣ Redirect
+            navigate("/dashboard/overview");
 
         } catch (err) {
-            console.error(
-                "Signup error:",
-                err.response?.data?.message || err.message
-            );
+            if (!err.response) {
+                setGeneralError("Server not reachable. Try again later.");
+            } else if (err.response.status === 400) {
+                setGeneralError(err.response.data.message || "Invalid signup details.");
+            } else {
+                setGeneralError("Signup failed. Please try again.");
+            }
         } finally {
             setLoading(false);
         }
     };
-
-
 
     return (
         <form onSubmit={handleSubmit} className="space-y-5">

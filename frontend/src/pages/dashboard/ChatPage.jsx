@@ -1,50 +1,69 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, MoreVertical, Phone, Video, Search } from 'lucide-react';
+import { Send, Paperclip, MoreVertical, Phone, Video, Search, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MessageBubble } from '../../components/chat/MessageBubble';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { Ticket } from 'lucide-react';
-
-const MOCK_MESSAGES = [
-    { id: 1, sender: 'Support Bot', role: 'bot', content: 'Hello! How can we help you today?', timestamp: '10:00 AM' },
-    { id: 2, sender: 'You', role: 'customer', content: 'Hi, I am having trouble with the API key generation.', timestamp: '10:02 AM' },
-    { id: 3, sender: 'Sarah Miller', role: 'agent', content: 'I can certainly help with that. Are you getting a specific error message?', timestamp: '10:05 AM' },
-    { id: 4, sender: 'You', role: 'customer', content: 'Yes, it says "403 Forbidden" even though I am an admin.', timestamp: '10:06 AM' },
-    { id: 5, sender: 'System Admin', role: 'admin', content: 'This might be a permissions sync issue. I create a ticket to escalate this check.', timestamp: '10:10 AM' },
-];
+import { api } from '../../services/api';
+import { Loader } from '../../components/common/Loader';
+import { useAuth } from '../../context/AuthContext';
 
 export const ChatPage = () => {
-    const [messages, setMessages] = useState(MOCK_MESSAGES);
+    const { user } = useAuth();
+    const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [sending, setSending] = useState(false);
     const messagesEndRef = useRef(null);
+
+    // Default to T-1024 for demo
+    const ACTIVE_TICKET = 'T-1024';
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
     useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+        const fetchMessages = async () => {
+            setLoading(true);
+            try {
+                const res = await api.messages.list(ACTIVE_TICKET); // 6) GET /api/messages/:ticketId
+                setMessages(res.data);
+            } catch (err) {
+                console.error("Chat Load Fail", err);
+            } finally {
+                setLoading(false);
+                setTimeout(scrollToBottom, 100);
+            }
+        };
+        fetchMessages();
+    }, [ACTIVE_TICKET]);
 
-    const handleSend = (e) => {
+    const handleSend = async (e) => {
         e.preventDefault();
         if (!inputValue.trim()) return;
 
-        const newMessage = {
-            id: Date.now(),
-            sender: 'You',
-            role: 'customer',
-            content: inputValue,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-
-        setMessages([...messages, newMessage]);
-        setInputValue('');
+        setSending(true);
+        try {
+            const res = await api.messages.send({
+                ticketId: ACTIVE_TICKET,
+                content: inputValue
+            });
+            setMessages(prev => [...prev, res.data]);
+            setInputValue('');
+            setTimeout(scrollToBottom, 100);
+        } catch (err) {
+            console.error("Send Fail", err);
+        } finally {
+            setSending(false);
+        }
     };
+
+    if (loading) return <div className="h-full flex items-center justify-center"><Loader /></div>;
 
     return (
         <div className="flex h-[calc(100vh-140px)] gap-6">
-            {/* Chat List (Sidebar for chat) */}
+            {/* Chat List (Sidebar) */}
             <div className="w-80 hidden lg:flex flex-col bg-brand-card border border-gray-800 rounded-xl overflow-hidden">
                 <div className="p-4 border-b border-gray-800">
                     <div className="relative">
@@ -78,7 +97,7 @@ export const ChatPage = () => {
                             <Ticket size={20} />
                         </div>
                         <div>
-                            <h3 className="font-semibold text-white">Ticket #1024: API Issue</h3>
+                            <h3 className="font-semibold text-white">Ticket #{ACTIVE_TICKET}: API Issue</h3>
                             <p className="text-xs text-green-400 flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
                                 Active Now
@@ -96,7 +115,7 @@ export const ChatPage = () => {
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-brand-darker/50">
                     {messages.map((msg) => (
-                        <MessageBubble key={msg.id} message={msg} isMe={msg.sender === 'You'} />
+                        <MessageBubble key={msg.id} message={msg} isMe={msg.role === 'customer'} />
                     ))}
                     <div ref={messagesEndRef} />
                 </div>
@@ -114,7 +133,7 @@ export const ChatPage = () => {
                             placeholder="Type your message..."
                             className="flex-1 bg-brand-dark border border-gray-700 rounded-lg px-4 text-white focus:outline-none focus:border-brand-purple transition-all"
                         />
-                        <PrimaryButton type="submit" className="w-auto px-4 bg-brand-purple hover:bg-brand-orchid">
+                        <PrimaryButton type="submit" loading={sending} className="w-auto px-4 bg-brand-purple hover:bg-brand-orchid">
                             <Send size={18} />
                         </PrimaryButton>
                     </form>

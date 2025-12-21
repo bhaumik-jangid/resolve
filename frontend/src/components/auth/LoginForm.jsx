@@ -5,6 +5,7 @@ import { PrimaryButton } from '../ui/PrimaryButton';
 import { FormError } from '../ui/FormError';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import axios from "axios";
 
 export const LoginForm = () => {
     const navigate = useNavigate();
@@ -45,21 +46,65 @@ export const LoginForm = () => {
 
         setLoading(true);
 
-        // Mock Login (Restore mock behavior for smooth UI demo)
-        setTimeout(() => {
+        try {
+            // 1️⃣ Sign in
+            const signinRes = await axios.post(
+                "http://localhost:5000/api/auth/signin",
+                {
+                    email: formData.email,
+                    password: formData.password
+                }
+            );
+
+            const { token, role, agentApproved } = signinRes.data;
+
+            // Edge case: agent not approved
+            if (role === "AGENT" && agentApproved === false) {
+                setGeneralError("Your account is pending admin approval.");
+                return;
+            }
+
+            localStorage.setItem("token", token);
+
+            // 2️⃣ Fetch profile
+            let meRes;
+            try {
+                meRes = await axios.get(
+                    "http://localhost:5000/api/auth/me",
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
+            } catch {
+                // Token valid but profile fetch failed
+                localStorage.removeItem("token");
+                throw new Error("Failed to load user profile");
+            }
+
+            // 3️⃣ Hydrate context
+            login(meRes.data);
+
+            // 4️⃣ Redirect
+            navigate("/dashboard/overview");
+
+        } catch (err) {
+            // 🎯 Precise error handling
+            if (!err.response) {
+                setGeneralError("Server not reachable. Check your connection.");
+            } else if (err.response.status === 400) {
+                setGeneralError("Invalid email or password.");
+            } else if (err.response.status === 401) {
+                setGeneralError("Session expired. Please login again.");
+            } else {
+                setGeneralError(
+                    err.response?.data?.message || "Signin failed. Try again."
+                );
+            }
+        } finally {
             setLoading(false);
-
-            // Call context login
-            login({
-                id: '1',
-                name: 'John Doe',
-                email: formData.email,
-                role: 'customer'
-            });
-
-            // Redirect
-            navigate('/dashboard/overview');
-        }, 1500);
+        }
     };
 
     return (

@@ -10,14 +10,26 @@ import { TicketsPage } from './pages/dashboard/TicketsPage';
 
 import { ChatPage } from './pages/dashboard/ChatPage';
 
-// Placeholder Pages (we will build these next)
+// Dashboard Redirect based on Role
 const DashboardRedirect = () => {
-  // Simple mock redirect based on generic user (role logic handled inside dashboards effectively via rendering specific ones if we wanted strictly separate routes, but here we share layout)
-  // For simplicity in this demo, defaulting to customer view or generic overview
+  const { user } = useAuth();
+  // Redirect to "Overview" for all by default, but this could be customized
+  // e.g., Agents might go straight to tickets
   return <Navigate to="/dashboard/overview" replace />;
 };
 
 const Placeholder = ({ title }) => <div className="p-8 text-brand-light font-medium text-lg opacity-50">Coming Soon: {title}</div>;
+
+import { useAuth } from './context/AuthContext';
+
+// Smart Container for Dashboard Overview
+const DashboardOverview = () => {
+  const { user } = useAuth();
+  if (!user) return null;
+  if (user.role === 'admin') return <AdminDashboard />;
+  if (user.role === 'agent') return <AgentDashboard />;
+  return <CustomerDashboard />;
+};
 
 function App() {
   return (
@@ -31,11 +43,15 @@ function App() {
           {/* Protected Routes */}
           <Route path="/dashboard" element={<AppLayout />}>
             <Route index element={<DashboardRedirect />} />
-            <Route path="overview" element={<CustomerDashboard />} /> {/* Using Customer view as default for demo */}
+            <Route path="overview" element={<DashboardOverview />} />
             <Route path="tickets" element={<TicketsPage />} />
             <Route path="chat" element={<ChatPage />} />
             <Route path="profile" element={<Placeholder title="User Profile" />} />
-            <Route path="agents" element={<AdminDashboard />} /> {/* Admin view demo */}
+
+            {/* Role Specific Routes if needed directly */}
+            <Route path="agents" element={<AgentDashboard />} />
+            <Route path="system" element={<AdminDashboard />} />
+            <Route path="customers" element={<CustomerDashboard />} />
           </Route>
 
           {/* Fallback */}

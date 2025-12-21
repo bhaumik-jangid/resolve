@@ -18,11 +18,12 @@ export const Sidebar = ({ collapsed, setCollapsed }) => {
     const { user, logout } = useAuth();
 
     // Define menu items based on roles
+    // Define Strict Menu Items based on prompt
     const menus = {
         customer: [
             { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard/overview' },
             { label: 'My Tickets', icon: Ticket, path: '/dashboard/tickets' },
-            { label: 'Chat Support', icon: MessageSquare, path: '/dashboard/chat' },
+            { label: 'Chat', icon: MessageSquare, path: '/dashboard/chat' },
             { label: 'Profile', icon: Settings, path: '/dashboard/profile' },
         ],
         agent: [
@@ -34,13 +35,15 @@ export const Sidebar = ({ collapsed, setCollapsed }) => {
         admin: [
             { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard/overview' },
             { label: 'All Tickets', icon: Ticket, path: '/dashboard/tickets' },
-            { label: 'Chats', icon: MessageSquare, path: '/dashboard/chat' },
             { label: 'Agents', icon: Users, path: '/dashboard/agents' },
+            { label: 'Chat', icon: MessageSquare, path: '/dashboard/chat' },
+            { label: 'System Overview', icon: LayoutDashboard, path: '/dashboard/system' }, // Added System Overview
             { label: 'Profile', icon: Settings, path: '/dashboard/profile' },
         ]
     };
 
-    const currentMenu = user ? menus[user.role] || menus.customer : [];
+    const roleKey = user?.role?.toLowerCase();
+    const currentMenu = menus[roleKey] ?? [];
 
     return (
         <motion.aside
