@@ -1,6 +1,7 @@
 import Message from "../models/Message.js";
 import Ticket from "../models/Ticket.js";
 import User from "../models/User.js";
+import { getIO } from "../socket.js";
 
 /* =========================
    SEND MESSAGE
@@ -45,7 +46,16 @@ export const sendMessage = async (req, res) => {
     content
   });
 
-  res.status(201).json(message);
+  // populate sender so frontend shape is consistent
+  const populatedMessage = await message.populate(
+    "senderId",
+    "name role"
+  );
+
+  const io = getIO();
+  io.to(ticketId).emit("new_message", populatedMessage);
+
+  res.status(201).json(populatedMessage);
 };
 
 /* =========================

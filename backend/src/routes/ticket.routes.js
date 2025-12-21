@@ -1,6 +1,7 @@
 import express from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import allowRoles from "../middlewares/role.middleware.js";
+import requireApprovedAgent from "../middlewares/requireApprovedAgent.js";
 
 import {
   createTicket,

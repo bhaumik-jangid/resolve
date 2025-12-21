@@ -7,6 +7,10 @@ import User from "../models/User.js";
 export const createTicket = async (req, res) => {
   const { priority = "LOW" } = req.body;
 
+  if (req.user.role !== "CUSTOMER") {
+    return res.status(403).json({ message: "Only customers can create tickets" });
+  }
+
   const ticket = await Ticket.create({
     customerId: req.user.id,
     priority
