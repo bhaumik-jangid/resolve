@@ -7,6 +7,7 @@ import { Loader } from '../../components/common/Loader';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { CreateTicketModal } from './CreateTicketModal';
+import { SystemInfo } from '../../components/dashboard/SystemInfo';
 
 export const CustomerDashboard = () => {
     const { user } = useAuth();
@@ -47,16 +48,18 @@ export const CustomerDashboard = () => {
             {/* Hero / Welcome */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-white">
-                    Welcome back, {user?.name}
+                    Welcome back, <span className="text-emerald-400">{user?.name?.split(' ')[0]}</span>
                 </h1>
 
-                <PrimaryButton
-                    onClick={() => setShowCreateTicket(true)}
-                    className="gap-2"
-                >
-                    <Plus size={20} />
-                    Create New Ticket
-                </PrimaryButton>
+                {user?.role == "CUSTOMER" && (
+                    <PrimaryButton
+                        onClick={() => setShowCreateTicket(true)}
+                        className="gap-2"
+                    >
+                        <Plus size={20} />
+                        Create New Ticket
+                    </PrimaryButton>
+                )}
             </div>
 
             {/* Minimal Stats */}
@@ -80,6 +83,7 @@ export const CustomerDashboard = () => {
                     onCreated={() => window.location.reload()}
                 />
             )}
+            <SystemInfo />
         </div>
     );
 };

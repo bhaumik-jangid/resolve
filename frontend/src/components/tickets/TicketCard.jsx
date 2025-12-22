@@ -4,7 +4,15 @@ import { Ticket, Clock, MessageSquare, ChevronRight } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { cn } from '../../lib/utils';
 
-export const TicketCard = ({ ticket, onClick }) => {
+export const TicketCard = ({
+    ticket,
+    onClick,
+    role,
+    onAssign,
+    onAccept,
+    onChat,
+    isAssignedToMe
+}) => {
     return (
         <motion.div
             layout
@@ -58,6 +66,36 @@ export const TicketCard = ({ ticket, onClick }) => {
                                 <MessageSquare size={12} />
                                 {ticket.messages} replies
                             </span>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="mt-4 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                            {role === 'ADMIN' && ticket.status === 'open' && (
+                                <button
+                                    onClick={() => onAssign?.(ticket)}
+                                    className="px-3 py-1.5 text-xs font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-md transition-colors"
+                                >
+                                    Assign Agent
+                                </button>
+                            )}
+
+                            {role === 'AGENT' && ticket.status === 'open' && (
+                                <button
+                                    onClick={() => onAccept?.(ticket)}
+                                    className="px-3 py-1.5 text-xs font-medium bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 rounded-md transition-colors"
+                                >
+                                    Accept Ticket
+                                </button>
+                            )}
+
+                            {role === 'AGENT' && (ticket.status === 'assigned' || ticket.status === 'in progress') && isAssignedToMe && (
+                                <button
+                                    onClick={() => onChat?.(ticket)}
+                                    className="px-3 py-1.5 text-xs font-medium bg-brand-purple/10 text-brand-purple hover:bg-brand-purple/20 border border-brand-purple/20 rounded-md transition-colors"
+                                >
+                                    Go to Chat
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

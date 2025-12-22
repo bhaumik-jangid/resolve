@@ -51,6 +51,18 @@ export const api = {
                 status
             });
             return res.data;
+        },
+
+        assign: async (ticketId, agentId) => {
+            const res = await apiClient.patch(`/api/tickets/${ticketId}/assign`, {
+                agentId
+            });
+            return res.data;
+        },
+
+        accept: async (ticketId) => {
+            const res = await apiClient.patch(`/api/tickets/${ticketId}/accept`);
+            return res.data;
         }
     },
 

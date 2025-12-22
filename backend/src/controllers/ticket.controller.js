@@ -92,7 +92,6 @@ export const assignTicket = async (req, res) => {
    UPDATE TICKET STATUS
 ========================= */
 export const updateTicketStatus = async (req, res) => {
-  console.log("Update Ticket Status Request Body:", req.body);
   const { ticketId, status } = req.body;
   const { role, id } = req.user;
 
@@ -148,7 +147,12 @@ export const getTickets = async (req, res) => {
   }
 
   if (role === "AGENT") {
-    query.agentId = id;
+    query = {
+      $or: [
+        { agentId: id },        // assigned to agent
+        { status: "OPEN" }     // unassigned tickets
+      ]
+    };
   }
 
   const tickets = await Ticket.find(query)
@@ -164,7 +168,7 @@ export const getTickets = async (req, res) => {
    ACCEPT TICKET (AGENT)
 ========================= */
 
-export const acceptTicket = async (req, res) => {
+export const acceptTicketByAgent = async (req, res) => {
   const { ticketId } = req.params;
   const agentId = req.user.id;
 
@@ -199,7 +203,7 @@ export const acceptTicket = async (req, res) => {
 
   // 5️⃣ Accept ticket
   ticket.agentId = agentId;
-  ticket.status = "IN_PROGRESS";
+  ticket.status = "ASSIGNED";
   await ticket.save();
 
   res.json({

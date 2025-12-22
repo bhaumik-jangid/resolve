@@ -25,12 +25,6 @@ export const HeaderBar = () => {
                         className="bg-brand-dark text-sm text-white pl-9 pr-4 py-2 rounded-full border border-gray-700 focus:outline-none focus:border-brand-purple w-64 transition-all"
                     />
                 </div>
-
-                {/* Notifications */}
-                <button className="relative w-9 h-9 rounded-full hover:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
-                    <Bell size={20} />
-                    <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-brand-salmon border-2 border-brand-darker"></span>
-                </button>
             </div>
         </header>
     );

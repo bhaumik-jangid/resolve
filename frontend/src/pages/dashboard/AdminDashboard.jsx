@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
-// import { motion } from 'framer-motion';
-import { Activity, Users, Shield, Globe, MoreVertical, AlertTriangle } from 'lucide-react';
-import { Loader } from '../../components/common/Loader';
-import { api } from '../../services/api';
-
+import React, { useState, useEffect } from 'react';
+import { TicketCard } from '../../components/tickets/TicketCard';
+import { X, Activity, AlertTriangle, Users } from 'lucide-react';
+import { SystemInfo } from '../../components/dashboard/SystemInfo';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../services/api';
+import { Loader } from '../../components/common/Loader';
+
 
 export const AdminDashboard = () => {
+    // ... existing setup ...
     const { user } = useAuth();
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -14,32 +16,42 @@ export const AdminDashboard = () => {
     const [agents, setAgents] = useState([]);
     const [pendingAgents, setPendingAgents] = useState([]);
 
+    // New State for Tickets & Assignment
+    const [tickets, setTickets] = useState([]);
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [selectedTicket, setSelectedTicket] = useState(null);
+    const [selectedAgentId, setSelectedAgentId] = useState('');
+
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const res = await api.dashboard.admin();
+                const [dashRes, ticketsRes] = await Promise.all([
+                    api.dashboard.admin(),
+                    api.tickets.list()
+                ]);
 
-                const t = res.tickets || {};
-                const a = res.agents || {};
-                console.log(res);
+                // 1. Process Stats
+                const t = dashRes.tickets || {};
+                const a = dashRes.agents || {};
 
-                // Construct stats for the grid
                 const newStats = [
                     { label: "Total Tickets", value: t.total || 0, change: "All Time" },
                     { label: "Open Tickets", value: t.open || 0, change: "Requires Attention" },
                     { label: "Active Agents", value: (a.total || 0) - (a.pending || 0), change: "Online" },
                     { label: "Pending Approvals", value: a.pending || 0, change: "Action Needed" }
                 ];
-
                 setStats(newStats);
 
-                // Process Lists
-                const list = res.agentsList || [];
+                // 2. Process Lists
+                const list = dashRes.agentsList || [];
                 setAgents(list.filter(agent => agent.approved));
                 setPendingAgents(list.filter(agent => !agent.approved));
 
-                if (res.isFallback) setIsFallback(true);
+                // 3. Process Tickets
+                setTickets(ticketsRes);
+
+                if (dashRes.isFallback) setIsFallback(true);
             } catch (err) {
                 console.error("Admin Dashboard Fail", err);
             } finally {
@@ -49,10 +61,10 @@ export const AdminDashboard = () => {
         fetchData();
     }, []);
 
+    // ... handleApprove / handleReject ...
     const handleApprove = async (id) => {
         try {
             await api.admin.agents.approve(id);
-            // Move from pending to active
             const agent = pendingAgents.find(a => a.id === id);
             setPendingAgents(prev => prev.filter(p => p.id !== id));
             if (agent) {
@@ -72,10 +84,52 @@ export const AdminDashboard = () => {
         }
     };
 
+    // New Assignment Logic
+    const openAssignModal = (ticket) => {
+        setSelectedTicket(ticket);
+        setIsAssignModalOpen(true);
+        setSelectedAgentId('');
+    };
+
+    const closeAssignModal = () => {
+        setIsAssignModalOpen(false);
+        setSelectedTicket(null);
+    };
+
+    const confirmAssign = async () => {
+        if (!selectedAgentId || !selectedTicket) return;
+
+        try {
+            await api.tickets.assign(selectedTicket.id || selectedTicket._id, selectedAgentId);
+
+            // Optimistic Update or Refresh
+            const updatedTickets = await api.tickets.list();
+            setTickets(updatedTickets);
+
+            // Also refresh stats/agents active counts if possible, but optional for now
+            closeAssignModal();
+        } catch (err) {
+            console.error("Assignment failed", err);
+        }
+    };
+
+    const openTickets = tickets.filter(t => t.status === 'open');
+
+    // Helper to normalize
+    const normalize = (t) => ({
+        id: t._id,
+        subject: t.subject,
+        status: t.status.toLowerCase(),
+        priority: t.priority.toLowerCase(),
+        updated: new Date(t.updatedAt).toLocaleDateString(),
+        messages: t.messages?.length || 0,
+        ...t
+    });
+
     if (loading) return <div className="h-full flex items-center justify-center"><Loader /></div>;
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 relative">
             {/* Banner for Fallback Mode */}
             {isFallback && (
                 <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 px-4 py-2 rounded-lg flex items-center gap-2 text-sm">
@@ -87,7 +141,7 @@ export const AdminDashboard = () => {
             <div className="flex items-center justify-between border-b border-gray-800 pb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-white">System Overview</h1>
-                    <p className="text-gray-400 text-sm">Welcome back, {user?.name}. Real-time platform monitoring</p>
+                    <p className="text-gray-400 text-sm">Welcome back, <span className="text-brand-purple font-medium">{user?.name?.split(' ')[0]}</span>. Real-time platform monitoring</p>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-mono text-green-400 bg-green-900/20 px-3 py-1 rounded-full border border-green-900/50">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -112,6 +166,33 @@ export const AdminDashboard = () => {
                         </div>
                     </div>
                 ))}
+            </div>
+
+            {/* OPEN TICKETS SECTION (New) */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        Unassigned Ticket Queue
+                    </h2>
+                    <span className="text-sm text-gray-500">{openTickets.length} tickets waiting</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {openTickets.length > 0 ? openTickets.map(t => (
+                        <TicketCard
+                            key={t._id}
+                            ticket={normalize(t)}
+                            role="ADMIN"
+                            onAssign={openAssignModal}
+                            dense
+                        />
+                    )) : (
+                        <div className="col-span-full p-8 border border-gray-800 border-dashed rounded-lg flex flex-col items-center justify-center text-gray-500">
+                            <p>No open tickets. Good job team!</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Pending Approvals Section */}
@@ -203,6 +284,61 @@ export const AdminDashboard = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Assignment Modal */}
+            {isAssignModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-brand-card border border-gray-700 rounded-lg shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+                            <h3 className="font-semibold text-white">Assign Ticket</h3>
+                            <button onClick={closeAssignModal} className="text-gray-400 hover:text-white">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Ticket</label>
+                                <div className="p-3 bg-gray-800/50 rounded border border-gray-700 text-white text-sm">
+                                    <span className="text-gray-500 font-mono mr-2">#{selectedTicket?.id || selectedTicket?._id}</span>
+                                    {selectedTicket?.subject}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Select Agent</label>
+                                <select
+                                    className="w-full bg-brand-dark border border-gray-700 text-white rounded p-2.5 focus:border-brand-purple focus:outline-none"
+                                    value={selectedAgentId}
+                                    onChange={(e) => setSelectedAgentId(e.target.value)}
+                                >
+                                    <option value="">-- Choose an agent --</option>
+                                    {agents.map(agent => (
+                                        <option key={agent.id} value={agent.id}>
+                                            {agent.name} ({agent.activeTicketCount || 0} active)
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-gray-900/50 flex justify-end gap-3">
+                            <button
+                                onClick={closeAssignModal}
+                                className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmAssign}
+                                disabled={!selectedAgentId}
+                                className="px-4 py-2 text-sm font-medium bg-brand-purple hover:bg-brand-purple/90 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Confirm Assignment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
+

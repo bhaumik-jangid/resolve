@@ -7,7 +7,7 @@ import {
   assignTicket,
   updateTicketStatus,
   getTickets, 
-  acceptTicket
+  acceptTicketByAgent
 
 } from "../controllers/ticket.controller.js";
 
@@ -48,8 +48,7 @@ router.get(
 router.patch(
   "/:ticketId/accept",
   authMiddleware,
-  acceptTicket
+  acceptTicketByAgent
 );
-
 
 export default router;
