@@ -49,7 +49,7 @@ export const LoginForm = () => {
         try {
             // 1️⃣ Sign in
             const signinRes = await axios.post(
-                "http://localhost:5000/api/auth/signin",
+                "https://reolve-production.up.railway.app/api/auth/signin",
                 {
                     email: formData.email,
                     password: formData.password
@@ -64,7 +64,7 @@ export const LoginForm = () => {
             let meRes;
             try {
                 meRes = await axios.get(
-                    "http://localhost:5000/api/auth/me",
+                    "https://reolve-production.up.railway.app/api/auth/me",
                     {
                         headers: {
                             Authorization: `Bearer ${token}`
