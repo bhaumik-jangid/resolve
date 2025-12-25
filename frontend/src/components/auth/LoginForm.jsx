@@ -49,14 +49,14 @@ export const LoginForm = () => {
         try {
             // 1️⃣ Sign in
             const signinRes = await axios.post(
-                "https://reolve-production.up.railway.app/api/auth/signin",
+                "http://localhost:5000/api/auth/signin",
                 {
                     email: formData.email,
                     password: formData.password
                 }
             );
 
-            const { token, role, agentApproved } = signinRes.data;
+            const { token } = signinRes.data;
 
             localStorage.setItem("token", token);
 
@@ -64,7 +64,7 @@ export const LoginForm = () => {
             let meRes;
             try {
                 meRes = await axios.get(
-                    "https://reolve-production.up.railway.app/api/auth/me",
+                    "http://localhost:5000/api/auth/me",
                     {
                         headers: {
                             Authorization: `Bearer ${token}`
@@ -72,9 +72,7 @@ export const LoginForm = () => {
                     }
                 );
             } catch {
-                // Token valid but profile fetch failed
                 localStorage.removeItem("token");
-                throw new Error("Failed to load user profile");
             }
 
             // 3️⃣ Hydrate context

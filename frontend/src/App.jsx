@@ -26,7 +26,6 @@ import { useAuth } from './context/AuthContext';
 const DashboardOverview = () => {
   const { user } = useAuth();
   if (!user) return null;
-  console.log("Dashboard loaded for role:", user.role);
   if (user.role === 'admin') return <AdminDashboard />;
   if (user.role === 'agent') return <AgentDashboard />;
   return <CustomerDashboard />;

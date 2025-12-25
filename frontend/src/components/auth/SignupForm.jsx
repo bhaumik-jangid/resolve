@@ -54,41 +54,32 @@ export const SignupForm = () => {
 
         try {
             // 1️⃣ Signup
-            const signupRes = await axios.post(
-                "http://localhost:5000/api/auth/signup",
-                {
-                    name: formData.name,
-                    email: formData.email,
-                    password: formData.password,
-                    role: formData.role.toUpperCase() // backend will reject invalid roles
-                },
-                {
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                }
-            );
+            const signupRes = await api.auth.signup({
+                name: formData.name,
+                email: formData.email,
+                password: formData.password,
+                role: formData.role.toUpperCase()
+            });
 
             const { token, role, agentApproved } = signupRes.data;
 
             // Edge case: agent pending approval
-            if (role === "AGENT" && agentApproved === false) {
-                setGeneralError("Your account is pending admin approval.");
-                return;
-            }
+            // if (role === "AGENT" && agentApproved === false) {
+            //     setGeneralError("Your account is pending admin approval.");
+            //     return;
+            // }
 
             // 2️⃣ Store token
             localStorage.setItem("token", token);
 
-            // 3️⃣ Fetch user profile (/me)
-            const meRes = await axios.get(
-                "http://localhost:5000/api/auth/me",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
+            // 3️⃣ Fetch profile
+            let meRes;
+            try {
+                meRes = await api.auth.me();
+            } catch {
+                localStorage.removeItem("token");
+                throw new Error("Failed to load user profile");
+            }
 
             // 4️⃣ Hydrate auth context
             login(meRes.data);

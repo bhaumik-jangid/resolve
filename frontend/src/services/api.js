@@ -19,6 +19,22 @@ apiClient.interceptors.request.use((config) => {
 // ---- API METHODS ----
 export const api = {
     auth: {
+        signin: async ({ email, password }) => {
+            const res = await apiClient.post("/api/auth/signin", {
+                email,
+                password
+            });
+            return res.data;
+        },
+
+        signup: async ({ email, password }) => {
+            const res = await apiClient.post("/api/auth/signup", {
+                email,
+                password
+            });
+            return res.data;
+        },
+
         me: async () => {
             const res = await apiClient.get("/api/auth/me");
             return res.data;
