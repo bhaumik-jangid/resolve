@@ -3,7 +3,7 @@ import { InputField } from '../ui/InputField';
 import { PrimaryButton } from '../ui/PrimaryButton';
 import { FormError } from '../ui/FormError';
 import { cn } from '../../lib/utils';
-import { api } from '../../lib/api';
+import { api } from '../../services/api';
 
 export const SignupForm = () => {
     const [formData, setFormData] = useState({
