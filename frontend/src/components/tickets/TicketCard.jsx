@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Ticket, Clock, MessageSquare, ChevronRight } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';

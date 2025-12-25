@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
 import { Mail, Lock, User, Briefcase } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { InputField } from '../ui/InputField';
 import { PrimaryButton } from '../ui/PrimaryButton';
 import { FormError } from '../ui/FormError';
 import { cn } from '../../lib/utils';
-import axios from 'axios';
+import { api } from '../../lib/api';
 
 export const SignupForm = () => {
     const [formData, setFormData] = useState({
@@ -61,7 +59,7 @@ export const SignupForm = () => {
                 role: formData.role.toUpperCase()
             });
 
-            const { token, role, agentApproved } = signupRes.data;
+            const { token } = signupRes.data;
 
             // Edge case: agent pending approval
             // if (role === "AGENT" && agentApproved === false) {

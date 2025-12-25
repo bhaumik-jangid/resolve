@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
 import { Mail, Lock } from 'lucide-react';
 import { InputField } from '../ui/InputField';
 import { PrimaryButton } from '../ui/PrimaryButton';
 import { FormError } from '../ui/FormError';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import axios from "axios";
 
 export const LoginForm = () => {
     const navigate = useNavigate();
@@ -48,13 +46,10 @@ export const LoginForm = () => {
 
         try {
             // 1️⃣ Sign in
-            const signinRes = await axios.post(
-                "http://localhost:5000/api/auth/signin",
-                {
-                    email: formData.email,
-                    password: formData.password
-                }
-            );
+            const signinRes = await api.auth.signin({
+                email: formData.email,
+                password: formData.password
+            });
 
             const { token } = signinRes.data;
 
@@ -63,14 +58,7 @@ export const LoginForm = () => {
             // 2️⃣ Fetch profile
             let meRes;
             try {
-                meRes = await axios.get(
-                    "http://localhost:5000/api/auth/me",
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`
-                        }
-                    }
-                );
+                meRes = await api.auth.me();
             } catch {
                 localStorage.removeItem("token");
             }

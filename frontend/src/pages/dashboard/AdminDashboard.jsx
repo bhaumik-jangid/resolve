@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
 import { TicketCard } from '../../components/tickets/TicketCard';
 import { X, Activity, AlertTriangle, Users } from 'lucide-react';
-import { SystemInfo } from '../../components/dashboard/SystemInfo';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { Loader } from '../../components/common/Loader';

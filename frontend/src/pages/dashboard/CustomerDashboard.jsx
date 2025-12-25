@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Ticket, ArrowRight, AlertCircle, Info } from 'lucide-react';
+import { Plus, Info } from 'lucide-react';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
-import { Badge } from '../../components/ui/Badge';
 import { Loader } from '../../components/common/Loader';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
