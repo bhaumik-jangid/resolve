@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Calendar, Shield, AlertCircle, CheckCircle } from 'lucide-react';
-import { api } from '../../services/api';
 import { Loader } from '../../components/common/Loader';
 import { RoleBadge } from '../../components/ui/RoleBadge';
 import { useAuth } from '../../context/AuthContext';

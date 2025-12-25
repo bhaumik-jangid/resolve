@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { MessageSquare, Ticket, Lock, Shuffle, Database, Cpu, Globe, Key, ChevronsRight, CheckCircle2 } from 'lucide-react';
 

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, Plus, AlertCircle, X } from 'lucide-react';
+import { Search, Plus, AlertCircle, X } from 'lucide-react';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { TicketCard } from '../../components/tickets/TicketCard';
 import { EmptyState } from '../../components/common/EmptyState';

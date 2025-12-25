@@ -1,150 +1,156 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
-
 import User from "../src/models/User.js";
 import Ticket from "../src/models/Ticket.js";
 import Message from "../src/models/Message.js";
 
-dotenv.config();
-
 const MONGO_URI = "mongodb+srv://azrael:resolve@resolve.bbtn3sy.mongodb.net/resolve";
-console.log("Using MongoDB URI:", MONGO_URI);
 
-const runSeed = async () => {
+const passwordHash = await bcrypt.hash("12345678", 10);
+
+const adminsData = [
+  { name: "Bhaumik Jangid", email: "bhaumik@admin.com" },
+  { name: "Neeraj Sharma", email: "neeraj@admin.com" },
+  { name: "Yashwardhan Singh", email: "yashwardhan@admin.com" }
+];
+
+const agentsData = [
+  "Amit Verma",
+  "Rohit Mehta",
+  "Suresh Patel",
+  "Kunal Malhotra",
+  "Ankit Yadav"
+];
+
+const customersData = [
+  "Ravi Kumar",
+  "Pooja Singh",
+  "Nikhil Jain",
+  "Ananya Gupta",
+  "Rahul Mishra",
+  "Sneha Kapoor"
+];
+
+const ticketSubjects = [
+  "Unable to login after password reset",
+  "Payment deducted but order not confirmed",
+  "App crashes on clicking dashboard",
+  "Unable to update profile information",
+  "Notifications not working properly",
+  "Facing error while submitting support form"
+];
+
+const customerMessages = [
+  "Hi, I am facing this issue since morning.",
+  "I tried restarting the app but it didn’t help.",
+  "This is affecting my work urgently.",
+  "Can you please check this as soon as possible?",
+  "I have already tried clearing cache."
+];
+
+const agentMessages = [
+  "Thanks for reaching out. I’m looking into this.",
+  "I can see the issue from logs, checking further.",
+  "Can you confirm if this happens on all devices?",
+  "This should be resolved now, please check.",
+  "I’ve escalated this internally."
+];
+
+const seed = async () => {
   try {
     await mongoose.connect(MONGO_URI);
-    console.log("MongoDB connected");
+    console.log("Connected to DB");
 
-    // ⚠️ Clean old data
     await User.deleteMany();
     await Ticket.deleteMany();
     await Message.deleteMany();
 
-    console.log("Old data cleared");
+    /* ======================
+       CREATE ADMINS
+    ====================== */
+    const admins = await User.insertMany(
+      adminsData.map(a => ({
+        ...a,
+        role: "ADMIN",
+        passwordHash
+      }))
+    );
 
-    const passwordHash = await bcrypt.hash("password123", 10);
+    /* ======================
+       CREATE AGENTS
+    ====================== */
+    const agents = await User.insertMany(
+      agentsData.map(name => ({
+        name,
+        email: `${name.split(" ")[0].toLowerCase()}@agent.com`,
+        role: "AGENT",
+        passwordHash,
+        agentStatus: { approved: true },
+        activeTicketCount: 0
+      }))
+    );
 
-    // =====================
-    // USERS
-    // =====================
+    /* ======================
+       CREATE CUSTOMERS
+    ====================== */
+    const customers = await User.insertMany(
+      customersData.map(name => ({
+        name,
+        email: `${name.split(" ")[0].toLowerCase()}@customer.com`,
+        role: "CUSTOMER",
+        passwordHash
+      }))
+    );
 
-    const admin = await User.create({
-      name: "Admin User",
-      email: "admin@test.com",
-      passwordHash,
-      role: "ADMIN",
-      authProvider: "LOCAL"
-    });
+    /* ======================
+       CREATE TICKETS + MESSAGES
+    ====================== */
+    for (let i = 0; i < customers.length; i++) {
+      const customer = customers[i];
+      const agent = agents[i % agents.length];
+      const subject = ticketSubjects[i % ticketSubjects.length];
 
-    const agent = await User.create({
-      name: "Support Agent",
-      email: "agent@test.com",
-      passwordHash,
-      role: "AGENT",
-      authProvider: "LOCAL",
-      agentStatus: {
-        approved: true,
-        approvedBy: admin._id,
-        approvedAt: new Date()
-      },
-      activeTicketCount: 0
-    });
+      const ticket = await Ticket.create({
+        subject,
+        description: `Customer reports: "${subject}". Issue is reproducible and needs investigation.`,
+        customerId: customer._id,
+        agentId: agent._id,
+        status: "ASSIGNED",
+        priority: i % 2 === 0 ? "HIGH" : "MEDIUM",
+        assignedAt: new Date()
+      });
 
-    const customer1 = await User.create({
-      name: "Customer One",
-      email: "customer1@test.com",
-      passwordHash,
-      role: "CUSTOMER",
-      authProvider: "LOCAL"
-    });
+      agent.activeTicketCount += 1;
+      await agent.save();
 
-    const customer2 = await User.create({
-      name: "Customer Two",
-      email: "customer2@test.com",
-      passwordHash,
-      role: "CUSTOMER",
-      authProvider: "LOCAL"
-    });
-
-    // console.log("Users created");
-
-    // =====================
-    // TICKETS + MESSAGES
-    // =====================
-
-    const customers = [customer1, customer2];
-    const priorities = ["LOW", "MEDIUM", "HIGH"];
-
-    for (const customer of customers) {
-      for (let i = 1; i <= 5; i++) {
-
-        const subject = `Issue ${i}: Unable to access account features`;
-        const description = `
-Customer is facing issue #${i}.
-They report unexpected behavior while using the application.
-Steps tried:
-- Refreshed page
-- Logged out and logged in
-- Tried different browser
-
-Expected resolution from support.
-    `.trim();
-
-        const ticket = await Ticket.create({
-          customerId: customer._id,
-          agentId: agent._id,
-          status: "ASSIGNED",
-          priority: priorities[i % priorities.length],
-          subject,
-          description,
-          assignedAt: new Date()
-        });
-
-        agent.activeTicketCount += 1;
-
-        // Sample chat
-        await Message.create([
-          {
-            ticketId: ticket._id,
-            senderId: customer._id,
-            senderRole: "CUSTOMER",
-            content: `Hi, I need help regarding "${subject}".`
-          },
-          {
-            ticketId: ticket._id,
-            senderId: agent._id,
-            senderRole: "AGENT",
-            content: "Thanks for reaching out. I’ve reviewed your issue and I’m investigating it."
-          },
-          {
-            ticketId: ticket._id,
-            senderId: admin._id,
-            senderRole: "ADMIN",
-            content: "Admin here — monitoring this conversation for quality assurance."
-          },
-          {
-            ticketId: ticket._id,
-            senderId: customer._id,
-            senderRole: "CUSTOMER",
-            content: "Appreciate the quick response."
-          }
-        ]);
-      }
+      await Message.insertMany([
+        {
+          ticketId: ticket._id,
+          senderId: customer._id,
+          senderRole: "CUSTOMER",
+          content: customerMessages[i % customerMessages.length]
+        },
+        {
+          ticketId: ticket._id,
+          senderId: agent._id,
+          senderRole: "AGENT",
+          content: agentMessages[i % agentMessages.length]
+        },
+        {
+          ticketId: ticket._id,
+          senderId: admins[0]._id,
+          senderRole: "ADMIN",
+          content: "Admin note: Monitoring this ticket for quality assurance."
+        }
+      ]);
     }
 
-
-    await agent.save();
-
-    console.log("Tickets and messages created");
-    console.log("✅ Seed data successfully inserted");
-
-    process.exit(0);
-
+    console.log("Seed data inserted successfully");
+    process.exit();
   } catch (err) {
-    console.error("❌ Seeding failed:", err);
+    console.error("Seed failed:", err);
     process.exit(1);
   }
 };
 
-runSeed();
+seed();

@@ -114,8 +114,6 @@ export const adminDashboard = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    console.log("Agents fetched for admin dashboard:", agents);
-
     const agentsList = agents.map(agent => ({
       id: agent._id,
       name: agent.name,

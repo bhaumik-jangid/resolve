@@ -1,5 +1,4 @@
-import React from 'react';
-import { Bell, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
 export const HeaderBar = () => {

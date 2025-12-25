@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { TicketCard } from '../../components/tickets/TicketCard';
 import { useNavigate } from 'react-router-dom';
 import { SystemInfo } from '../../components/dashboard/SystemInfo';

@@ -9,24 +9,19 @@ import { TicketsPage } from './pages/dashboard/TicketsPage';
 import { ChatPage } from './pages/dashboard/ChatPage';
 import { ProfilePage } from './pages/dashboard/ProfilePage';
 import { TicketsProvider } from './context/TicketsContext';
+import { useAuth } from './context/AuthContext';
 
 // Dashboard Redirect based on Role
 const DashboardRedirect = () => {
   const { user } = useAuth();
-  // Redirect to "Overview" for all by default, but this could be customized
-  // e.g., Agents might go straight to tickets
   return <Navigate to="/dashboard/overview" replace />;
 };
 
-const Placeholder = ({ title }) => <div className="p-8 text-brand-light font-medium text-lg opacity-50">Coming Soon: {title}</div>;
-
-import { useAuth } from './context/AuthContext';
 
 // Smart Container for Dashboard Overview
 const DashboardOverview = () => {
   const { user } = useAuth();
   if (!user) return null;
-  console.log("Dashboard loaded for role:", user.role);
   if (user.role === 'admin') return <AdminDashboard />;
   if (user.role === 'agent') return <AgentDashboard />;
   return <CustomerDashboard />;
