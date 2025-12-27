@@ -18,14 +18,14 @@ export const SystemInfo = () => {
     };
 
     return (
-        <div className="space-y-12 py-8 mt-8 border-t border-gray-800/50">
+        <div className="space-y-12 py-8 mt-8 border-t border-slate-200 dark:border-gray-800/50">
             {/* SECTION 1: System Capabilities */}
             <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="h-8 w-1 bg-brand-purple rounded-full"></div>
                     <div>
-                        <h2 className="text-xl font-bold text-white">System Capabilities</h2>
-                        <p className="text-gray-400 text-sm">Core features powering the platform</p>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">System Capabilities</h2>
+                        <p className="text-slate-500 dark:text-gray-400 text-sm">Core features powering the platform</p>
                     </div>
                 </div>
 
@@ -72,12 +72,12 @@ export const SystemInfo = () => {
             </div>
 
             {/* SECTION 2: Workflow Visualization */}
-            <div className="bg-brand-card/50 border border-gray-800 rounded-xl p-8 overflow-hidden relative">
+            <div className="bg-white/80 dark:bg-brand-card/50 border border-slate-200 dark:border-gray-800 rounded-xl p-8 overflow-hidden relative shadow-lg shadow-slate-200/50 dark:shadow-none">
                 <div className="absolute top-0 right-0 p-4 opacity-5">
                     <Database size={120} />
                 </div>
 
-                <h3 className="text-lg font-semibold text-white mb-8 text-center">How the System Works</h3>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-8 text-center">How the System Works</h3>
 
                 <div className="flex flex-col md:flex-row items-center justify-center gap-4 relative z-10">
                     <Step title="Customer Creates Ticket" />
@@ -114,8 +114,8 @@ const FeatureCard = ({ icon: Icon, title, desc, color, bg, border }) => (
         <div className={`mb-4 w-10 h-10 rounded-lg flex items-center justify-center ${bg} border ${border}`}>
             <Icon size={20} className={color} />
         </div>
-        <h3 className={`font-semibold text-white mb-2`}>{title}</h3>
-        <p className="text-sm text-gray-400">{desc}</p>
+        <h3 className={`font-semibold text-slate-900 dark:text-white mb-2`}>{title}</h3>
+        <p className="text-sm text-slate-500 dark:text-gray-400">{desc}</p>
     </motion.div>
 );
 
@@ -123,10 +123,10 @@ const Step = ({ title, highlight }) => (
     <div className={`
         relative px-6 py-4 rounded-lg border text-center w-full md:w-auto
         ${highlight
-            ? 'bg-brand-purple/10 border-brand-purple/30 text-white shadow-[0_0_15px_rgba(139,92,246,0.1)]'
-            : 'bg-gray-800/50 border-gray-700 text-gray-300'}
+            ? 'bg-brand-purple/10 border-brand-purple/30 text-brand-purple dark:text-white shadow-[0_0_15px_rgba(139,92,246,0.1)]'
+            : 'bg-slate-100 dark:bg-gray-800/50 border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300'}
     `}>
-        <p className={`text-sm font-medium ${highlight ? 'text-brand-purple' : 'text-gray-300'}`}>{title}</p>
+        <p className={`text-sm font-medium ${highlight ? 'text-brand-purple' : 'text-slate-600 dark:text-gray-300'}`}>{title}</p>
     </div>
 );
 
@@ -137,7 +137,7 @@ const Arrow = () => (
 );
 
 const TechBadge = ({ icon: Icon, label }) => (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800 border border-gray-700 text-gray-400 text-xs font-medium hover:border-gray-600 hover:text-gray-300 transition-colors cursor-default">
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-500 dark:text-gray-400 text-xs font-medium hover:border-slate-300 dark:hover:border-gray-600 hover:text-slate-700 dark:hover:text-gray-300 transition-colors cursor-default">
         <Icon size={12} />
         <span>{label}</span>
     </div>

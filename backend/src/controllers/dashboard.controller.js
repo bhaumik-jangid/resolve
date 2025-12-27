@@ -1,36 +1,48 @@
 import Ticket from "../models/Ticket.js";
 import User from "../models/User.js";
+import mongoose from "mongoose";
 
 /* =========================
    CUSTOMER DASHBOARD
 ========================= */
 export const customerDashboard = async (req, res) => {
-  const customerId = req.user.id;
+  try {
+    const customerId = mongoose.Types.ObjectId.createFromHexString(
+      req.user.id
+    );
 
-  const stats = await Ticket.aggregate([
-    { $match: { customerId: req.user._id } },
-    {
-      $group: {
-        _id: "$status",
-        count: { $sum: 1 }
+    const stats = await Ticket.aggregate([
+      { $match: { customerId } },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }
       }
-    }
-  ]);
+    ]);
 
-  const result = {
-    total: 0,
-    open: 0,
-    assigned: 0,
-    resolved: 0,
-    closed: 0
-  };
+    const result = {
+      total: 0,
+      open: 0,
+      assigned: 0,
+      resolved: 0,
+      closed: 0
+    };
 
-  stats.forEach(s => {
-    result[s._id.toLowerCase()] = s.count;
-    result.total += s.count;
-  });
+    stats.forEach(s => {
+      const key = s._id.toLowerCase();
+      if (key in result) {
+        result[key] = s.count;
+        result.total += s.count;
+      }
+    });
 
-  res.json(result);
+
+    res.json(result);
+  } catch (err) {
+    console.error("Customer dashboard error:", err);
+    res.status(500).json({ message: "Failed to load dashboard stats" });
+  }
 };
 
 
@@ -38,29 +50,40 @@ export const customerDashboard = async (req, res) => {
    AGENT DASHBOARD
 ========================= */
 export const agentDashboard = async (req, res) => {
-  const agentId = req.user.id;
+  try {
+    const agentId = mongoose.Types.ObjectId.createFromHexString(req.user.id);
 
-  const stats = await Ticket.aggregate([
-    { $match: { agentId: req.user._id } },
-    {
-      $group: {
-        _id: "$status",
-        count: { $sum: 1 }
+    const statsRaw = await Ticket.aggregate([
+      { $match: { agentId } },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }
       }
-    }
-  ]);
+    ]);
 
-  const result = {
-    assigned: 0,
-    resolved: 0,
-    closed: 0
-  };
+    const stats = {
+      total: 0,
+      open: 0,
+      assigned: 0,
+      resolved: 0,
+      closed: 0
+    };
 
-  stats.forEach(s => {
-    result[s._id.toLowerCase()] = s.count;
-  });
+    statsRaw.forEach(s => {
+      const key = s._id.toLowerCase();
+      if (key in stats) {
+        stats[key] = s.count;
+        stats.total += s.count;
+      }
+    });
 
-  res.json(result);
+    res.json({ stats });
+  } catch (err) {
+    console.error("Agent dashboard error:", err);
+    res.status(500).json({ message: "Failed to load agent dashboard" });
+  }
 };
 
 
@@ -81,7 +104,7 @@ export const adminDashboard = async (req, res) => {
       }
     ]);
 
-    const ticketStats = {
+    const stats = {
       total: 0,
       open: 0,
       assigned: 0,
@@ -91,15 +114,21 @@ export const adminDashboard = async (req, res) => {
 
     ticketStatsRaw.forEach(t => {
       const key = t._id.toLowerCase();
-      ticketStats[key] = t.count;
-      ticketStats.total += t.count;
+      if (key in stats) {
+        stats[key] = t.count;
+        stats.total += t.count;
+      }
     });
 
     /* =========================
-       AGENT COUNTS
+       AGENT COUNTS (EXPLICIT)
     ========================= */
-    const [totalAgents, pendingAgents] = await Promise.all([
+    const [totalAgents, approvedAgents, pendingAgents] = await Promise.all([
       User.countDocuments({ role: "AGENT" }),
+      User.countDocuments({
+        role: "AGENT",
+        "agentStatus.approved": true
+      }),
       User.countDocuments({
         role: "AGENT",
         "agentStatus.approved": false
@@ -107,32 +136,17 @@ export const adminDashboard = async (req, res) => {
     ]);
 
     /* =========================
-       AGENT LIST (LIGHTWEIGHT)
-    ========================= */
-    const agents = await User.find({ role: "AGENT" })
-      .select("name email agentStatus activeTicketCount createdAt")
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const agentsList = agents.map(agent => ({
-      id: agent._id,
-      name: agent.name,
-      email: agent.email,
-      approved: agent.agentStatus?.approved ?? false,
-      activeTicketCount: agent.activeTicketCount || 0,
-      createdAt: agent.createdAt
-    }));
-
-    /* =========================
        FINAL RESPONSE
     ========================= */
     res.json({
-      tickets: ticketStats,
-      agents: {
-        total: totalAgents,
-        pending: pendingAgents
-      },
-      agentsList
+      stats,
+      meta: {
+        agents: {
+          total: totalAgents,
+          approved: approvedAgents,
+          pending: pendingAgents
+        },
+      }
     });
 
   } catch (err) {
@@ -140,4 +154,6 @@ export const adminDashboard = async (req, res) => {
     res.status(500).json({ message: "Failed to load admin dashboard" });
   }
 };
+
+
 

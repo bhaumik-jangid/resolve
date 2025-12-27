@@ -7,10 +7,10 @@ export const HeaderBar = () => {
     const title = pathSegments[pathSegments.length - 1] || 'Dashboard';
 
     return (
-        <header className="h-16 bg-brand-darker/80 backdrop-blur-md border-b border-gray-800 flex items-center justify-between px-6 sticky top-0 z-40">
+        <header className="h-16 bg-white/80 dark:bg-brand-darker/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 sticky top-0 z-40 transition-colors duration-300">
             {/* Page Title / Breadcrumbs */}
             <div>
-                <h2 className="text-lg font-semibold text-white capitalize">{title}</h2>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white capitalize">{title}</h2>
             </div>
 
             {/* Actions */}

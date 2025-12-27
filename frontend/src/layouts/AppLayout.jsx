@@ -18,7 +18,7 @@ export const AppLayout = () => {
     }
 
     return (
-        <div className="min-h-screen bg-brand-darker text-white flex relative isolate">
+        <div className="min-h-screen bg-white dark:bg-brand-darker text-slate-900 dark:text-white flex relative isolate transition-colors duration-300">
             <FluidBackground />
 
             {/* Sidebar */}

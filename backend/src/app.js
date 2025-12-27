@@ -8,12 +8,16 @@ import dashboardRoutes from "./routes/dashboard.routes.js";
 
 const app = express();
 
+// app.use(cors());
 app.use(cors({
+  // origin: process.env.CLIENT_URL,
   origin: "http://localhost:5173",
-  credentials: true              
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
 }));
 
-// app.use(cors());
+app.options("*", cors());
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
@@ -27,5 +31,13 @@ app.get("/", (req, res) => {
   res.send("Support Chat API running");
 });
 
+// 🔥 HEALTH CHECK API (DO NOT REMOVE)
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    uptime: process.uptime(),          
+    timestamp: new Date().toISOString()
+  });
+});
 
 export default app;

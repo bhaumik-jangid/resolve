@@ -1,4 +1,5 @@
 import { motion, useMotionValue, useSpring } from 'framer-motion';
+import { useEffect } from 'react';
 
 export const FluidBackground = () => {
     const mouseX = useMotionValue(0);

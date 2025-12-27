@@ -3,6 +3,7 @@ import { X, Activity, AlertTriangle, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { Loader } from '../../components/common/Loader';
+import { useEffect, useState } from 'react';
 
 
 export const AdminDashboard = () => {
