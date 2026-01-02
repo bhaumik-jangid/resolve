@@ -6,6 +6,7 @@ import { TicketCard } from '../../components/tickets/TicketCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Loader } from '../../components/common/Loader';
 import { api } from '../../services/api';
+import { UIError } from '../../components/common/UIError';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTickets } from '../../context/TicketsContext';
@@ -14,6 +15,7 @@ export const TicketsPage = () => {
     const { user } = useAuth();
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [uiError, setUiError] = useState(null);
     const [filter, setFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [isFallback, setIsFallback] = useState(false);
@@ -39,8 +41,6 @@ export const TicketsPage = () => {
                     const approved = res.filter(a => a.agentStatus.approved === true || a.status === 'active');
                     setAgents(res);
                     setActiveAgents(approved);
-                    console.log("Agents", res),
-                        console.log("Approved", approved)
                 } catch (err) {
                     console.error("Failed to load agents", err);
                 }
@@ -50,8 +50,16 @@ export const TicketsPage = () => {
     }, [user]);
 
     useEffect(() => {
+        console.log(user);
         const fetchTickets = async () => {
             if (!user) return;
+
+            if (user.role === 'AGENT' && user.agentApproved === false) {
+                setUiError("Your account is pending admin approval.");
+            } else {
+                setUiError(null);
+            }
+
 
             setLoading(true);
             try {
@@ -61,8 +69,14 @@ export const TicketsPage = () => {
                 upsertTickets(normalized);
                 setIsFallback(false);
             } catch (err) {
-                console.error("Failed to load tickets", err);
-                setIsFallback(true);
+                if (err.response?.status === 403 &&
+                    err.response.data?.code === "AGENT_NOT_APPROVED") {
+
+                    setUiError("Your account is pending admin approval.");
+                    return;
+                }
+
+                setUiError("Failed to load tickets. Try again later.");
             } finally {
                 setLoading(false);
             }
@@ -142,22 +156,22 @@ export const TicketsPage = () => {
 
     const confirmAssign = async () => {
         if (!selectedAgentId || !selectedTicket) return;
-
         setIsAssigning(true);
         try {
-            const res = await api.tickets.assign(selectedTicket.id || selectedTicket._id, selectedAgentId);
+            const res = await api.tickets.assign(selectedTicket.id, selectedAgentId);
+            console.log(res);
+            // Refetch list to ensure consistency and avoid optimistic update errors
+            const res2 = await api.tickets.list();
+            const normalized = res2.map(normalizeTicket);
+            setTickets(normalized);
+            upsertTickets(normalized);
 
-            // Update local state
-            const updated = normalizeTicket(res.ticket || res); // Ensure normalization if needed
-
-            setTickets((prev) =>
-                prev.map((t) => t.id === updated.id ? updated : t)
-            );
+            setUiError(null);
 
             closeAssignModal();
         } catch (err) {
             console.error("Assignment failed", err);
-            // Optionally show error to user
+            setUiError("Failed to assign ticket. Please try again.");
         } finally {
             setIsAssigning(false);
         }
@@ -187,6 +201,8 @@ export const TicketsPage = () => {
                     </PrimaryButton>
                 )}
             </div>
+            {/* Error Message */}
+            <UIError message={uiError} />
 
             {/* Controls */}
             <div className="flex flex-col sm:flex-row gap-4 shrink-0">
@@ -288,7 +304,6 @@ export const TicketsPage = () => {
                                 >
                                     <option value="">-- Choose an agent --</option>
                                     {activeAgents.map(agent => (
-                                        console.log(agent),
                                         <option key={agent.id || agent._id} value={agent.id || agent._id}>
                                             {agent.name} {agent.activeTicketCount ? `(${agent.activeTicketCount} active)` : ''}
                                         </option>

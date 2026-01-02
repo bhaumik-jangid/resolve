@@ -24,7 +24,7 @@ export const signup = async (req, res) => {
 
   // 4. Create user
   const user = await User.create({
-    name,
+    name: name.charAt(0).toUpperCase() + name.slice(1),
     email,
     passwordHash: hash,
     role,
@@ -135,7 +135,6 @@ export const googleAuth = async (req, res) => {
 export const getMe = async (req, res) => {
   try {
     const userId = req.user.id;
-
     const user = await User.findById(userId).select(
       "_id name email role agentStatus authProvider"
     );

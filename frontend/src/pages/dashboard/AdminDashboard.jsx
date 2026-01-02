@@ -29,23 +29,22 @@ export const AdminDashboard = () => {
                     api.dashboard.admin(),
                     api.tickets.list()
                 ]);
-
                 // 1. Process Stats
-                const t = dashRes.tickets || {};
-                const a = dashRes.agents || {};
+                const t = dashRes.stats || {};
+                const a = ticketsRes || {};
 
                 const newStats = [
                     { label: "Total Tickets", value: t.total || 0, change: "All Time" },
                     { label: "Open Tickets", value: t.open || 0, change: "Requires Attention" },
-                    { label: "Active Agents", value: (a.total || 0) - (a.pending || 0), change: "Online" },
-                    { label: "Pending Approvals", value: a.pending || 0, change: "Action Needed" }
+                    { label: "Active Agents", value: (t.total || 0) - (a.pending || 0), change: "Online" },
+                    { label: "Pending Approvals", value: t.pending || 0, change: "Action Needed" }
                 ];
                 setStats(newStats);
 
                 // 2. Process Lists
-                const list = dashRes.agentsList || [];
-                setAgents(list.filter(agent => agent.approved));
-                setPendingAgents(list.filter(agent => !agent.approved));
+                const list = dashRes.meta.agentList || [];
+                setAgents(list.filter(agent => agent.agentStatus?.approved));
+                setPendingAgents(list.filter(agent => agent.agentStatus?.approved === false));
 
                 // 3. Process Tickets
                 setTickets(ticketsRes);
@@ -64,15 +63,23 @@ export const AdminDashboard = () => {
     const handleApprove = async (id) => {
         try {
             await api.admin.agents.approve(id);
-            const agent = pendingAgents.find(a => a.id === id);
-            setPendingAgents(prev => prev.filter(p => p.id !== id));
-            if (agent) {
-                setAgents(prev => [...prev, { ...agent, status: 'active', approved: true }]);
-            }
+
+            setPendingAgents(prev =>
+                prev.filter(agent => agent._id !== id)
+            );
+
+            setAgents(prev => {
+                const approvedAgent = pendingAgents.find(a => a._id === id);
+                return approvedAgent
+                    ? [...prev, { ...approvedAgent, agentStatus: { approved: true } }]
+                    : prev;
+            });
+
         } catch (err) {
             console.error("Approve failed", err);
         }
     };
+
 
     const handleReject = async (id) => {
         try {
@@ -167,59 +174,32 @@ export const AdminDashboard = () => {
                 ))}
             </div>
 
-            {/* OPEN TICKETS SECTION (New) */}
-            <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                        Unassigned Ticket Queue
-                    </h2>
-                    <span className="text-sm text-gray-500">{openTickets.length} tickets waiting</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {openTickets.length > 0 ? openTickets.map(t => (
-                        <TicketCard
-                            key={t._id}
-                            ticket={normalize(t)}
-                            role="ADMIN"
-                            onAssign={openAssignModal}
-                            dense
-                        />
-                    )) : (
-                        <div className="col-span-full p-8 border border-gray-800 border-dashed rounded-lg flex flex-col items-center justify-center text-gray-500">
-                            <p>No open tickets. Good job team!</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-
             {/* Pending Approvals Section */}
-            {pendingAgents.length > 0 && (
-                <div className="bg-brand-card border border-gray-800 rounded-lg overflow-hidden">
-                    <div className="p-4 border-b border-gray-800 bg-amber-500/5 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <AlertTriangle className="text-amber-500" size={18} />
-                            <h3 className="font-semibold text-white">Pending Approvals</h3>
-                            <div className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 text-xs font-medium">{pendingAgents.length}</div>
-                        </div>
+            <div className="bg-brand-card border border-gray-800 rounded-lg overflow-hidden">
+                <div className="p-4 border-b border-gray-800 bg-amber-500/5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle className="text-amber-500" size={18} />
+                        <h3 className="font-semibold text-white">Pending Approvals</h3>
+                        <div className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 text-xs font-medium">{pendingAgents.length}</div>
                     </div>
+                </div>
+                {pendingAgents.length > 0 ? (
                     <div className="divide-y divide-gray-800">
                         {pendingAgents.map((agent) => (
-                            <div key={agent.id} className="p-4 flex items-center justify-between">
+                            <div key={agent._id} className="p-4 flex items-center justify-between">
                                 <div>
                                     <p className="text-white font-medium">{agent.name}</p>
                                     <p className="text-sm text-gray-400">{agent.email}</p>
                                 </div>
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={() => handleApprove(agent.id)}
+                                        onClick={() => handleApprove(agent._id)}
                                         className="px-3 py-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 rounded-md text-sm font-medium transition-colors"
                                     >
                                         Approve
                                     </button>
                                     <button
-                                        onClick={() => handleReject(agent.id)}
+                                        onClick={() => handleReject(agent._id)}
                                         className="px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-md text-sm font-medium transition-colors"
                                     >
                                         Reject
@@ -228,8 +208,13 @@ export const AdminDashboard = () => {
                             </div>
                         ))}
                     </div>
-                </div>
-            )}
+                ) : (
+                    <div className="p-8 text-center text-gray-500">
+                        No pending approvals.
+                    </div>
+                )}
+
+            </div>
 
             {/* All Agents List */}
             <div className="bg-brand-card border border-gray-800 rounded-lg overflow-hidden">
@@ -253,7 +238,7 @@ export const AdminDashboard = () => {
                         </thead>
                         <tbody className="divide-y divide-gray-800">
                             {agents.map((agent) => (
-                                <tr key={agent.id} className="hover:bg-gray-800/30 transition-colors">
+                                <tr key={agent._id} className="hover:bg-gray-800/30 transition-colors">
                                     <td className="px-6 py-4 text-white font-medium">{agent.name}</td>
                                     <td className="px-6 py-4 text-gray-400">{agent.email}</td>
                                     <td className="px-6 py-4">

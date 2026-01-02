@@ -121,19 +121,20 @@ export const adminDashboard = async (req, res) => {
     });
 
     /* =========================
-       AGENT COUNTS (EXPLICIT)
+       AGENT COUNTS
     ========================= */
     const [totalAgents, approvedAgents, pendingAgents] = await Promise.all([
       User.countDocuments({ role: "AGENT" }),
-      User.countDocuments({
-        role: "AGENT",
-        "agentStatus.approved": true
-      }),
-      User.countDocuments({
-        role: "AGENT",
-        "agentStatus.approved": false
-      })
+      User.countDocuments({ role: "AGENT", "agentStatus.approved": true }),
+      User.countDocuments({ role: "AGENT", "agentStatus.approved": false })
     ]);
+
+    /* =========================
+       AGENT LIST
+    ========================= */
+    const agentList = await User.find({ role: "AGENT" })
+      .select("name email agentStatus.approved createdAt")
+      .sort({ "agentStatus.approvedAt": -1 });
 
     /* =========================
        FINAL RESPONSE
@@ -146,6 +147,7 @@ export const adminDashboard = async (req, res) => {
           approved: approvedAgents,
           pending: pendingAgents
         },
+        agentList
       }
     });
 
@@ -154,6 +156,3 @@ export const adminDashboard = async (req, res) => {
     res.status(500).json({ message: "Failed to load admin dashboard" });
   }
 };
-
-
-

@@ -1,5 +1,6 @@
 import { Search } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { ThemeToggle } from '../components/common/ThemeToggle';
 
 export const HeaderBar = () => {
     const location = useLocation();
@@ -15,6 +16,8 @@ export const HeaderBar = () => {
 
             {/* Actions */}
             <div className="flex items-center gap-4">
+                <ThemeToggle />
+
                 {/* Search Mock */}
                 <div className="relative hidden md:block">
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />

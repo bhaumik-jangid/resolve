@@ -28,10 +28,12 @@ export const api = {
             return res.data;
         },
 
-        signup: async ({ email, password }) => {
+        signup: async ({ name, email, password, role }) => {
             const res = await apiClient.post("/api/auth/signup", {
+                name,
                 email,
-                password
+                password,
+                role
             });
             return res.data;
         },
@@ -71,9 +73,11 @@ export const api = {
         },
 
         assign: async (ticketId, agentId) => {
+            console.log(ticketId, agentId);
             const res = await apiClient.patch(`/api/tickets/${ticketId}/assign`, {
                 agentId
             });
+            console.log(res);
             return res.data;
         },
 

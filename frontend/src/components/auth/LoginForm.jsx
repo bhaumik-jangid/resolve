@@ -4,7 +4,7 @@ import { PrimaryButton } from '../ui/PrimaryButton';
 import { FormError } from '../ui/FormError';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 
 export const LoginForm = () => {
@@ -38,6 +38,8 @@ export const LoginForm = () => {
         return Object.keys(newErrors).length === 0;
     };
 
+    const { user } = useAuth();
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setGeneralError("");
@@ -67,6 +69,7 @@ export const LoginForm = () => {
 
             // 3️⃣ Hydrate context
             login(meRes);
+
             // 4️⃣ Redirect
             navigate("/dashboard/overview");
 

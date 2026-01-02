@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import axios from "axios";
+import { api } from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -19,20 +19,15 @@ export const AuthProvider = ({ children }) => {
             }
 
             try {
-                const res = await axios.get(
-                    "http://localhost:5000/api/auth/me",
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
-
-                setUser(res.data);
+                const res = await api.auth.me();
+                setUser(res);
                 setError(null);
             } catch (err) {
-                localStorage.removeItem("token");
-                setUser(null);
+                console.error("ME failed:", err.response?.status, err.message);
+                if (err.response?.status === 401) {
+                    localStorage.removeItem("token");
+                    setUser(null);
+                }
                 setError("Session expired. Please login again.");
             } finally {
                 setLoading(false);
@@ -61,7 +56,7 @@ export const AuthProvider = ({ children }) => {
                 error,
                 login,
                 logout,
-                isAuthenticated: !!user,
+                isAuthenticated: !!user?.id,
             }}
         >
             {children}

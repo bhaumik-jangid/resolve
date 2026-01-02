@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthPage } from './pages/AuthPage';
 import { AppLayout } from './layouts/AppLayout';
 import { CustomerDashboard } from './pages/dashboard/CustomerDashboard';
@@ -30,31 +31,33 @@ const DashboardOverview = () => {
 function App() {
   return (
     <AuthProvider>
-      <TicketsProvider>
-        <Router>
-          <Routes>
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/login" element={<Navigate to="/auth" replace />} />
-            <Route path="/signup" element={<Navigate to="/auth" replace />} />
+      <ThemeProvider>
+        <TicketsProvider>
+          <Router>
+            <Routes>
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/login" element={<Navigate to="/auth" replace />} />
+              <Route path="/signup" element={<Navigate to="/auth" replace />} />
 
-            {/* Protected Routes */}
-            <Route path="/dashboard" element={<AppLayout />}>
-              <Route index element={<DashboardRedirect />} />
-              <Route path="overview" element={<DashboardOverview />} />
-              <Route path="tickets" element={<TicketsPage />} />
-              <Route path="chat" element={<ChatPage />} />
-              <Route path="profile" element={<ProfilePage />} />
+              {/* Protected Routes */}
+              <Route path="/dashboard" element={<AppLayout />}>
+                <Route index element={<DashboardRedirect />} />
+                <Route path="overview" element={<DashboardOverview />} />
+                <Route path="tickets" element={<TicketsPage />} />
+                <Route path="chat" element={<ChatPage />} />
+                <Route path="profile" element={<ProfilePage />} />
 
-              {/* Role Specific Routes if needed directly */}
-              <Route path="agents" element={<AdminDashboard />} />
-              {/* <Route path="system" element={<AdminSystem />} /> */}
-            </Route>
+                {/* Role Specific Routes if needed directly */}
+                <Route path="agents" element={<AdminDashboard />} />
+                {/* <Route path="system" element={<AdminSystem />} /> */}
+              </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </Router>
-      </TicketsProvider>
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Router>
+        </TicketsProvider>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

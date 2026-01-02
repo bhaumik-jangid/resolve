@@ -4,8 +4,13 @@ import { PrimaryButton } from '../ui/PrimaryButton';
 import { FormError } from '../ui/FormError';
 import { cn } from '../../lib/utils';
 import { api } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { useState } from 'react';
 
 export const SignupForm = () => {
+    const navigate = useNavigate();
+    const { login } = useAuth();
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -59,18 +64,10 @@ export const SignupForm = () => {
                 role: formData.role.toUpperCase()
             });
 
-            const { token } = signupRes.data;
+            const { token } = signupRes;
 
-            // Edge case: agent pending approval
-            // if (role === "AGENT" && agentApproved === false) {
-            //     setGeneralError("Your account is pending admin approval.");
-            //     return;
-            // }
-
-            // 2️⃣ Store token
             localStorage.setItem("token", token);
 
-            // 3️⃣ Fetch profile
             let meRes;
             try {
                 meRes = await api.auth.me();
@@ -80,7 +77,7 @@ export const SignupForm = () => {
             }
 
             // 4️⃣ Hydrate auth context
-            login(meRes.data);
+            login(meRes);
 
             // 5️⃣ Redirect
             navigate("/dashboard/overview");

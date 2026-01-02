@@ -77,6 +77,8 @@ export const assignTicket = async (req, res) => {
     return res.status(400).json({ message: "Ticket already assigned" });
   }
 
+  console.log("Assigning ticket", ticketId, "to agent", agentId);
+
   // 4️⃣ Assign
   ticket.agentId = agentId;
   ticket.status = "ASSIGNED";
@@ -138,8 +140,9 @@ export const updateTicketStatus = async (req, res) => {
    FETCH TICKETS (ROLE BASED)
 ========================= */
 export const getTickets = async (req, res) => {
-  const { role, id } = req.user;
-
+  const { role, id, agentStatus } = req.user;
+  console.log("User :", req.user);
+  console.log("Fetching tickets for", role, id, agentStatus);
   let query = {};
 
   if (role === "CUSTOMER") {
@@ -147,12 +150,18 @@ export const getTickets = async (req, res) => {
   }
 
   if (role === "AGENT") {
+
     query = {
       $or: [
-        { agentId: id },        // assigned to agent
-        { status: "OPEN" }     // unassigned tickets
+        { agentId: id },       // assigned to this agent
+        { status: "OPEN" }     // available tickets
       ]
     };
+  }
+
+  // ADMIN: optional but recommended
+  if (role === "ADMIN") {
+    query = {}; // all tickets
   }
 
   const tickets = await Ticket.find(query)

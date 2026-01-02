@@ -41,7 +41,7 @@ export const CustomerDashboard = () => {
                         throw new Error("Invalid user role");
                 }
 
-                const s = res.stats;
+                const s = res.stats || res;
 
                 const formattedStats = [
                     { label: "Total Tickets", value: s.total, icon: Ticket, color: "text-blue-400", bg: "bg-blue-400/10" },
